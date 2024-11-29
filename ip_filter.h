@@ -1,21 +1,22 @@
 #ifndef IP_FILTER_H
 #define IP_FILTER_H
 
-
-#include <iostream>  
-#include <fstream>
-#include <vector> 
 #include <string>
-#include <sstream>
-#include <algorithm>
-#include <tuple>
+#include <vector>
 
-std::tuple<int, int, int, int> parse_ip_adress(std::string ip_adress_str); // Функция преобразования строки IP адреса в кортеж
+// Функция для разделения строки на части
+std::vector<std::string> split(const std::string &str, char d);
 
-std::vector<std::tuple<int, int, int, int>> readfile(std::string fileName); // Функция считывания файла
+// Функция для сравнения двух IP-адресов
+bool compareIPs(const std::vector<std::string>& a, const std::vector<std::string>& b);
 
-void sort_ip(std::vector<std::tuple<int, int, int, int>>& ipAdresses); // Функция сортировки ip адресов
-#endif // IP_FILTER_H// lib.h
-#pragma once
+// Функция для печати IP-адресов с первым байтом равным заданному значению
+void printIPsWithFirstByte(const std::vector<std::vector<std::string>>& ip_pool, int first_byte);
 
-const char* version();  // Изменено на const char*
+// Функция для печати IP-адресов с первым байтом равным 46 и вторым - 70
+void printIPsWithFirstAndSecondByte(const std::vector<std::vector<std::string>>& ip_pool, int first_byte, int second_byte);
+
+// Функция для печати IP-адресов, где любой байт равен заданному значению
+void printIPsWithAnyByte(const std::vector<std::vector<std::string>>& ip_pool, int byte_value);
+
+#endif // IP_FILTER_H

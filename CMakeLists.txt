@@ -1,83 +1,56 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.10)  # Устанавливаем минимальную версию CMake, необходимую для проекта
 
-# Настройка версии с использованием переменной GITHUB_RUN_NUMBER
-if(DEFINED ENV{GITHUB_RUN_NUMBER})
-    set(PATCH_VERSION $ENV{GITHUB_RUN_NUMBER})
-else()
-    set(PATCH_VERSION "1")
-endif()
+project(IFilterProject VERSION 0.1.0)  # Определяем название проекта и его версию
 
-set(PROJECT_VERSION "0.0.${PATCH_VERSION}")
-project(helloworld VERSION ${PROJECT_VERSION})
+# Найти Boost
+find_package(Boost REQUIRED COMPONENTS unit_test_framework)  # Ищем библиотеку Boost, необходимую для юнит-тестирования
 
-# Найти Boost для тестирования
-find_package(Boost REQUIRED COMPONENTS unit_test_framework)
+# Создание библиотеки и исполняемого файла
+add_library(ip_filter ip_filter.cpp)  # Создаем библиотеку из файла ip_filter.cpp
+add_executable(test_ip_filter test_ip_filter.cpp)  # Создаем исполняемый файл для тестов из файла test_ip_filter.cpp
 
-# Генерация version.h из version.h.in
-configure_file(version.h.in version.h)
-
-# Добавление исполняемых файлов и библиотек
-add_executable(helloworld_cli main.cpp)
-add_library(helloworld lib.cpp)
-add_executable(test_version test_version.cpp)
-
-# Настройки стандартов C++
-set_target_properties(helloworld_cli helloworld test_version PROPERTIES
-    CXX_STANDARD 14
-    CXX_STANDARD_REQUIRED ON
+# Установка стандартов C++
+set_target_properties(ip_filter test_ip_filter PROPERTIES  # Устанавливаем свойства для библиотек и исполняемых файлов
+    CXX_STANDARD 14  # Указываем стандарт C++14
+    CXX_STANDARD_REQUIRED ON  # Обязательно использовать указанный стандарт
 )
 
-# Установка директории для заголовочных файлов
-target_include_directories(helloworld
-    PRIVATE "${CMAKE_BINARY_DIR}"
+# Установка директорий для заголовочных файлов
+target_include_directories(ip_filter PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")  # Указываем директорию с заголовочными файлами для библиотеки
+target_include_directories(test_ip_filter PRIVATE ${Boost_INCLUDE_DIRS})  # Указываем директории с заголовками Boost только для тестов
+
+# Связывание библиотек
+target_link_libraries(test_ip_filter PRIVATE ${Boost_LIBRARIES} ip_filter)  # Связываем исполняемый файл тестов с библиотеками Boost и ip_filter
+
+# Включение тестирования
+enable_testing()  # Включаем поддержку тестирования в проекте
+add_test(NAME test_ip_filter COMMAND test_ip_filter)  # Добавляем тест с именем test_ip_filter, который запускает исполняемый файл test_ip_filter
+
+# Копирование ресурсов (если необходимо)
+set(RESOURCE_FILES 
+    resources/ic.icns  # Определяем список ресурсов для копирования (например, иконки)
+    # resources/info.plist  # Закомментируйте эту строку, если файл не нужен
 )
 
-# Настройки для тестов
-target_include_directories(test_version
-    PRIVATE ${Boost_INCLUDE_DIR}
-)
-target_link_libraries(test_version
-    PRIVATE ${Boost_LIBRARIES}
-    helloworld
-)
+foreach(RESOURCE ${RESOURCE_FILES})  # Итерируемся по каждому ресурсу в списке
+    configure_file(${RESOURCE} ${CMAKE_BINARY_DIR}/${RESOURCE} COPYONLY)  # Копируем ресурс в директорию сборки без изменений
+endforeach()
 
-# Линковка helloworld_cli с helloworld
-target_link_libraries(helloworld_cli PRIVATE helloworld)
+# Включение CPack для создания пакетов
+include(CPack)  # Подключаем модуль CPack для создания пакетов
 
-# Настройки компилятора в зависимости от платформы
-if (MSVC)
-    target_compile_options(helloworld_cli PRIVATE /W4)
-    target_compile_options(helloworld PRIVATE /W4)
-    target_compile_options(test_version PRIVATE /W4)
-else ()
-    target_compile_options(helloworld_cli PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(helloworld PRIVATE -Wall -Wextra -pedantic -Werror)
-    target_compile_options(test_version PRIVATE -Wall -Wextra -pedantic -Werror)
-endif()
+# Настройки для CPack
+set(CPACK_PACKAGE_NAME "ip_filter")  # Устанавливаем имя пакета
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")  # Устанавливаем версию пакета, равную версии проекта
+set(CPACK_PACKAGE_DESCRIPTION "A description of your package.")  # Описание пакета
+set(CPACK_PACKAGE_LICENSE "MIT")  # Замените на вашу лицензию (например, MIT)
+set(CPACK_GENERATOR "DEB")  # Указываем генератор пакета, здесь - DEB для Debian/Ubuntu; можно использовать "Bundle" для macOS
 
-# Установка для macOS и Linux
-if (APPLE)
-    set(CPACK_GENERATOR "Bundle")
-    set(CPACK_PACKAGE_NAME "helloworld")
-    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-    set(CPACK_PACKAGE_FILE_NAME "helloworld-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}")
-    set(CPACK_BUNDLE_NAME "helloworld")
-    set(CPACK_BUNDLE_PLIST "${CMAKE_SOURCE_DIR}/Info.plist")
-    set(CPACK_BUNDLE_ICON "${CMAKE_SOURCE_DIR}/AppIcon.icns")
-elseif (UNIX)
-    set(CPACK_GENERATOR "DEB")
-    set(CPACK_PACKAGE_NAME "helloworld")
-    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-    set(CPACK_PACKAGE_FILE_NAME "helloworld-${PROJECT_VERSION}-Linux")
-endif()
+# Установка файлов в пакет (если необходимо)
+install(TARGETS ip_filter DESTINATION bin)  # Устанавливаем библиотеку в директорию bin пакета
+install(TARGETS test_ip_filter DESTINATION bin)  # Если хотите включить тесты в пакет, устанавливаем их в директорию bin
 
-set(CPACK_PACKAGE_CONTACT example@example.com)
+# Установка ресурсов в пакет (если необходимо)
+install(FILES ${RESOURCE_FILES} DESTINATION resources)  # Устанавливаем ресурсы в директорию resources пакета
 
-include(CPack)
-
-# Настройка тестов
-enable_testing()
-add_test(NAME test_version COMMAND test_version)
-
-message("Configured PATCH_VERSION: ${PATCH_VERSION}")
-message("Configured PROJECT_VERSION: ${PROJECT_VERSION}")
+message("Configured PROJECT_VERSION: ${PROJECT_VERSION}")  # Выводим сообщение с настроенной версией проекта в консоль
